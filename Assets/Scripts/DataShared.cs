@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Text;
-using UnityEngine;
+using Utility;
 
 public sealed class DataShared
 {
@@ -9,11 +9,10 @@ public sealed class DataShared
 
 	public static readonly DataShared I = new();
 
-	public string Line_00;
-	public string Line_01;
 	public string StrategyCurrent;
+	public int ScoreCurrent;
 
-	private int LOG_LINES_MAX_I = 20;
+	private readonly int LOG_LINES_MAX_I = 20;
 	private readonly Queue<string> _log = new();
 
 	public void Log(string message)
@@ -23,7 +22,7 @@ public sealed class DataShared
 		{
 			var line = index == 0 ? split[index] : $"{new string(' ', 2)}{split[index]}";
 			_log.Enqueue(line);
-			Debug.Log(line);
+			line.Log();
 		}
 		while(_log.Count > LOG_LINES_MAX_I)
 		{
@@ -34,8 +33,6 @@ public sealed class DataShared
 	public string RenderVars()
 	{
 		return new StringBuilder()
-			.AppendLine($"00: {Line_00}")
-			.AppendLine($"01: {Line_01}")
 			.AppendLine($"02: {StrategyCurrent}")
 			.ToString();
 	}

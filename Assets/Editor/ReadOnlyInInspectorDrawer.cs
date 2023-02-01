@@ -50,7 +50,7 @@ namespace Editor
 	//			var root = ScriptableObject.CreateInstance<PresenterRoot>();
 	//			root.Asset = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/_content/ui/ui_main.prefab");
 	//			root.PresenterDebug = ScriptableObject.CreateInstance<PresenterDebug>();
-	//			root.PresenterDebug.Asset = AssetDatabase.LoadAssetAtPath<CompScreen>("Assets/_content/ui/scr_debug.prefab");
+	//			root.PresenterDebug.Asset = AssetDatabase.LoadAssetAtPath<CompMatch>("Assets/_content/ui/scr_debug.prefab");
 
 	//			AssetDatabase.CreateAsset(root, $"{path}/ui.panel.asset");
 	//		}

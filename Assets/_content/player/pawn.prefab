@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 1343819734725208417}
   - component: {fileID: 6806605836951753355}
   - component: {fileID: 4485106433715520910}
-  m_Layer: 0
+  m_Layer: 17
   m_Name: pawn
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -92,7 +92,7 @@ GameObject:
   serializedVersion: 6
   m_Component:
   - component: {fileID: 5353426816399421062}
-  m_Layer: 0
+  m_Layer: 17
   m_Name: origin
   m_TagString: Untagged
   m_Icon: {fileID: 0}
@@ -125,11 +125,11 @@ GameObject:
   - component: {fileID: 5548425368114495038}
   - component: {fileID: 5477824817723233733}
   - component: {fileID: 8697508187857610460}
-  - component: {fileID: 6777547238868689412}
-  - component: {fileID: -1847693854794322675}
   - component: {fileID: 6897504019005316379}
-  m_Layer: 0
-  m_Name: player
+  - component: {fileID: -6551667784711518533}
+  - component: {fileID: 3645702933117363111}
+  m_Layer: 17
+  m_Name: pawn
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -165,7 +165,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   sceneId: 0
-  _assetId: 3322449475
+  _assetId: 3695185127
   serverOnly: 0
   visible: 0
   hasSpawned: 0
@@ -197,27 +197,21 @@ MonoBehaviour:
   positionSensitivity: 0.01
   rotationSensitivity: 0.01
   scaleSensitivity: 0.01
---- !u!114 &6777547238868689412
-MonoBehaviour:
+--- !u!136 &6897504019005316379
+CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5474063469323163078}
+  m_Material: {fileID: 0}
+  m_IsTrigger: 1
   m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 975e3deb9d152d543b3c317a2cc831f1, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  syncDirection: 0
-  syncMode: 0
-  syncInterval: 0
-  UltimateDistance: 0
-  UltimateIntervalAffect: 0
-  OriginCamera: {fileID: 5353426816399421062}
-  MouseX: 0
-  MouseY: 0
---- !u!54 &-1847693854794322675
+  m_Radius: 0.45
+  m_Height: 1.14
+  m_Direction: 2
+  m_Center: {x: 0, y: 0.5, z: 0}
+--- !u!54 &-6551667784711518533
 Rigidbody:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -233,17 +227,27 @@ Rigidbody:
   m_Interpolate: 0
   m_Constraints: 0
   m_CollisionDetection: 0
---- !u!136 &6897504019005316379
-CapsuleCollider:
+--- !u!114 &3645702933117363111
+MonoBehaviour:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 5474063469323163078}
-  m_Material: {fileID: 0}
-  m_IsTrigger: 0
   m_Enabled: 1
-  m_Radius: 0.5
-  m_Height: 1.14
-  m_Direction: 2
-  m_Center: {x: 0, y: 0.5, z: 0}
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 7aa2006c598b4b847b24f7669dff7fac, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  syncDirection: 0
+  syncMode: 0
+  syncInterval: 0.1
+  Velocity: 0.04
+  MaxSpeed: 0.7
+  MinAngleCamera: -60
+  MaxAngleCamera: 60
+  UltimateDistance: 3
+  UltimateAffectInterval: 3
+  UltimatePerformInterval: 0.6
+  SpawnDelayInterval: 1
+  OriginCamera: {fileID: 5353426816399421062}
