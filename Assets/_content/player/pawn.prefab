@@ -250,4 +250,5 @@ MonoBehaviour:
   UltimateAffectInterval: 3
   UltimatePerformInterval: 0.6
   SpawnDelayInterval: 1
+  MaxScore: 3
   OriginCamera: {fileID: 5353426816399421062}

@@ -1,6 +1,5 @@
 using System;
 using Mirror;
-using Unity.VisualScripting;
 using UnityEngine;
 using Utility;
 
@@ -25,9 +24,13 @@ public class CompPawnNew : NetworkBehaviour
 	public double UltimateAffectInterval = ULTIMATE_AFFECT_INTERVAL_D;
 	public double UltimatePerformInterval = ULTIMATE_PERFORM_INTERVAL_D;
 	public double SpawnDelayInterval = SPAWN_DELAY_INTERVAL_SEC_F;
+
 	public int MaxScore = 3;
 
 	public Transform OriginCamera;
+
+	private Vector3 _cameraHomePosition;
+	private Quaternion _cameraHomeOrientation;
 
 	private IPawnAspect[] _client;
 	private IPawnAspect[] _server;
@@ -87,21 +90,62 @@ public class CompPawnNew : NetworkBehaviour
 	{
 		DataShared.I.Log($"[server] sending complete to: {NetIdentity.netId}");
 
-		RpcComplete(State.Score);
+		RpcComplete(State.Score, name);
+
+		Invoke(nameof(OnRestart), 5f);
 	}
 
 	[ClientRpc(includeOwner = true)]
-	public void RpcComplete(int score)
+	public void RpcComplete(int score, string name)
 	{
 		DataShared.I.Log($"[client] receive complete at: {NetIdentity.netId}");
 
-		State.Score = score;
+		DataShared.I.NameWinner = name;
+
 		if(isLocalPlayer)
 		{
+			State.Score = score;
 			DataShared.I.ScoreCurrent = State.Score;
 		}
 
+		if(this.IsWinner(isLocalPlayer))
+		{
+			Controller.ShowScreen<CompScreenWin>();
+		}
+		else
+		{
+			Controller.ShowScreen<CompScreenLose>();
+		}
+
 		DataShared.I.Log("<color=red>complete</color>");
+	}
+
+	// must be authority
+	[Server]
+	public void OnRestart()
+	{
+		DataShared.I.Log($"[server] sending restart to: {NetIdentity.netId}");
+
+		Controller.Restart();
+	}
+
+	[ClientRpc(includeOwner = true)]
+	public void RpcRestart(Vector3 position)
+	{
+		DataShared.I.Log($"[client] receive restart at: {NetIdentity.netId}");
+
+		State.Score = 0;
+
+		if(isLocalPlayer)
+		{
+			Camera.InitializeCamera(OriginCamera);
+			this.InitializePawn(position);
+
+			DataShared.I.ScoreCurrent = State.Score;
+			Controller.ShowScreen<CompScreenMatch>();
+
+			DataShared.I.Log("<color=green>restart</color>");
+		}
 	}
 
 	// must be authority
@@ -127,8 +171,6 @@ public class CompPawnNew : NetworkBehaviour
 
 	public void SetColor(Color color)
 	{
-		DataShared.I.Log($"color set to: {color}");
-
 		Renderer.material.color = color;
 	}
 
@@ -157,8 +199,12 @@ public class CompPawnNew : NetworkBehaviour
 		if(isLocalPlayer)
 		{
 			Camera = Camera.main;
+
+			_cameraHomePosition = Camera.transform.position;
+			_cameraHomeOrientation = Camera.transform.rotation;
+
 			Camera.InitializeCamera(OriginCamera);
-			this.InitializePawn();
+			this.InitializePawn(transform.position);
 			Cursor.lockState = CursorLockMode.Locked;
 
 			DataShared.I.Log($"(      local): [ {(authority ? "" : "no ")}authority; {(isServer ? "server" : "client")} ]");
@@ -175,6 +221,11 @@ public class CompPawnNew : NetworkBehaviour
 
 		if(isLocalPlayer)
 		{
+			var camTransform = Camera.transform;
+			camTransform.SetParent(null);
+			camTransform.position = _cameraHomePosition;
+			camTransform.rotation = _cameraHomeOrientation;
+
 			Cursor.lockState = CursorLockMode.None;
 		}
 	}
@@ -186,7 +237,7 @@ public class CompPawnNew : NetworkBehaviour
 		State.TimeAbs = NetworkTime.time;
 
 		// must use (authority) - broken
-		if(isServer)
+		if(isServer && !Controller.IsAnyScoreMax())
 		{
 			// skip first frame
 			if(_server == null)
@@ -215,7 +266,7 @@ public class CompPawnNew : NetworkBehaviour
 		//	DataShared.I.Log($"[client]: call update {NetIdentity.netId} ({_count})");
 		//}
 
-		if(isLocalPlayer)
+		if(isLocalPlayer && !Controller.IsAnyScoreMax())
 		{
 			if(_client == null)
 			{

@@ -1,19 +1,20 @@
 using System;
+using System.Collections.Generic;
 using kcp2k;
 using Mirror;
 using UnityEditor;
 using UnityEngine;
-using UnityEngine.EventSystems;
 using Utility;
 
-[RequireComponent(typeof(NetworkManager))]
 [RequireComponent(typeof(KcpTransport))]
 [RequireComponent(typeof(NetworkManagerHUD))]
-public class CompApp : MonoBehaviour
+public class CompApp : NetworkRoomManager
 {
 	public GameObject UiRoot;
 	public ScreenBase ScreenDebug;
 	public ScreenBase ScreenMatch;
+	public ScreenBase ScreenWin;
+	public ScreenBase ScreenLose;
 
 	public Color[] ColorsUnaffected =
 	{
@@ -25,15 +26,35 @@ public class CompApp : MonoBehaviour
 
 	public Color[] ColorsAffected =
 	{
-		Color.Lerp(Color.red, Color.black, .5f),
-		Color.Lerp(Color.yellow, Color.black, .5f),
-		Color.Lerp(Color.blue, Color.black, .5f),
-		Color.Lerp(Color.green, Color.black, .5f),
+		Color.Lerp(Color.red, Color.black, .7f),
+		Color.Lerp(Color.yellow, Color.black, .7f),
+		Color.Lerp(Color.blue, Color.black, .7f),
+		Color.Lerp(Color.green, Color.black, .7f),
 	};
 
-	private NetworkManager _manager;
+	private CompPawnNew[] _assets; //~ use Mirror's native
+	private readonly List<ScreenBase> _screens = new();
 
-	private CompPawnNew[] _assets;
+	//private Action<NetworkConnectionToClient, MessageCreatePawn> _handlerCreatePawn;
+
+	public bool IsAnyScoreMax()
+	{
+		for(var index = 0; index < _assets.Length; index++)
+		{
+			if(ReferenceEquals(_assets[index], null))
+			{
+				return false;
+			}
+
+			var pawn = _assets[index];
+			if(pawn.State.Score >= pawn.MaxScore)
+			{
+				return true;
+			}
+		}
+
+		return false;
+	}
 
 	public void Register(CompPawnNew asset)
 	{
@@ -53,18 +74,78 @@ public class CompApp : MonoBehaviour
 		_assets.DeFragment();
 	}
 
-	private void Awake()
+	public void ShowScreen<T>() where T : ScreenBase
 	{
-		var ui = Instantiate(UiRoot);
-		Instantiate(ScreenDebug.gameObject, ui.transform);
-		Instantiate(ScreenMatch.gameObject, ui.transform);
-
-		_manager = GetComponent<NetworkManager>();
-		_assets = new CompPawnNew[_manager.maxConnections];
+		for(var index = 0; index < _screens.Count; index++)
+		{
+			_screens[index].gameObject.SetActive(typeof(T) == _screens[index].GetType());
+		}
 	}
 
-	private void Update()
+	public void Restart()
 	{
+		var spawns = FindObjectsOfType<NetworkStartPosition>();
+		spawns.Shuffle();
+		for(var index = 0; index < _assets.Length; index++)
+		{
+			_assets[index].RpcRestart(spawns[index].transform.position);
+		}
+	}
+
+	//public override void OnStartServer()
+	//{
+	//	base.OnStartServer();
+
+	//	// ReSharper disable once ConvertClosureToMethodGroup (not a CLR)
+	//	_handlerCreatePawn = (connection, message) => { OnCreatePawn(connection, message); };
+	//	NetworkServer.RegisterHandler(_handlerCreatePawn);
+
+	//	DataShared.I.Log("server start callback");
+	//}
+
+	//public override void OnStopServer()
+	//{
+	//	base.OnStopServer();
+
+	//	if(!ReferenceEquals(null, _handlerCreatePawn))
+	//	{
+	//		NetworkServer.UnregisterHandler<MessageCreatePawn>();
+	//	}
+
+	//	DataShared.I.Log("server stop callback");
+	//}
+
+	//public override void OnClientConnect()
+	//{
+	//	base.OnClientConnect();
+
+	//	NetworkClient.Send(new MessageCreatePawn(playerPrefab));
+	//}
+
+	//private static void OnCreatePawn(NetworkConnectionToClient conn, MessageCreatePawn message)
+	//{
+	//	var instance = Instantiate(message.Proto);
+	//	NetworkServer.AddPlayerForConnection(conn, instance);
+	//}
+
+	public override void Start()
+	{
+		base.Start();
+
+		var ui = Instantiate(UiRoot);
+		Instantiate(ScreenDebug.gameObject, ui.transform).SetActive(true);
+		Instantiate(ScreenMatch.gameObject, ui.transform).AppendTo(_screens).SetActive(false);
+		Instantiate(ScreenLose.gameObject, ui.transform).AppendTo(_screens).SetActive(false);
+		Instantiate(ScreenWin.gameObject, ui.transform).AppendTo(_screens).SetActive(false);
+		DontDestroyOnLoad(ui.gameObject);
+
+		_assets = new CompPawnNew[maxConnections];
+	}
+
+	public override void Update()
+	{
+		base.Update();
+
 		if(Input.GetKey(KeyCode.Escape))
 		{
 			#if UNITY_EDITOR
@@ -76,24 +157,39 @@ public class CompApp : MonoBehaviour
 	}
 }
 
+/// <summary> interface.. </summary>
+public readonly struct MessageCreatePawn : NetworkMessage
+{
+	public readonly GameObject Proto;
+
+	public MessageCreatePawn(GameObject proto)
+	{
+		Proto = proto;
+	}
+}
+
 /// <summary> modify but not reassign issue </summary>
 public struct StatePawn
 {
-	public Vector3 Current;
-	public Vector3 Target;
-	public double Speed;
 	public double TimeAbs;
 	public double TimeDelta;
+	public Vector3 Current;
+	public Vector3 Target;
 	public Quaternion RotationPawn;
 	public Quaternion RotationCamera;
+	public double Speed;
+	//
 	public Vector3 UltimateSourcePosition;
 	public double UltimateSourceTimestamp;
 	public Vector3 UltimateTargetPosition;
 	public double UltimateTargetTimestamp;
+	//
 	public double AffectedSourceTimestamp;
 	public double AffectedTargetTimestamp;
+	//
 	public Color ColorUnaffected;
 	public Color ColorAffected;
+	//
 	public int Score;
 }
 
@@ -277,7 +373,7 @@ public sealed class PawnAspectLookUnaffected : IPawnAspect
 				pawn.SetColor(state.ColorUnaffected);
 			}
 
-			DataShared.I.Log($"look switch unaffected: {currentActive}");
+			//DataShared.I.Log($"look switch unaffected: {currentActive}");
 		}
 	}
 }
@@ -300,13 +396,40 @@ public sealed class PawnAspectLookAffected : IPawnAspect
 				pawn.SetColor(state.ColorAffected);
 			}
 
-			DataShared.I.Log($"look switch affected: {currentActive}");
+			//DataShared.I.Log($"look switch affected: {currentActive}");
 		}
 	}
 }
 
 public static class Extensions
 {
+	public static GameObject AppendTo(this GameObject item, List<ScreenBase> screens)
+	{
+		if(ReferenceEquals(null, item))
+		{
+			throw new Exception("no item to append");
+		}
+
+		var screen = item.GetComponent<ScreenBase>();
+		
+		if(ReferenceEquals(null, screens))
+		{
+			throw new Exception($"no screen to append in: {item.name}");
+		}
+
+		// do not use LINQ intently
+		for(var index = 0; index < screens.Count; index++)
+		{
+			if(screens[index].GetType() == screen.GetType())
+			{
+				throw new Exception($"appending the same screen as: {item.name}");
+			}
+		}
+
+		screens.Add(screen);
+		return screen.gameObject;
+	}
+
 	public static void InitializeCamera(this Camera target, Transform cameraAnchor)
 	{
 		var camTransform = target.transform;
@@ -315,9 +438,10 @@ public static class Extensions
 		camTransform.localRotation = Quaternion.identity;
 	}
 
-	public static void InitializePawn(this CompPawnNew target)
+	public static void InitializePawn(this CompPawnNew target, Vector3 position)
 	{
 		var pawnTransform = target.transform;
+		pawnTransform.position = position;
 		pawnTransform.localRotation = Quaternion.LookRotation(
 			Vector3.zero - pawnTransform.position,
 			Vector3.up);
@@ -415,6 +539,11 @@ public static class Extensions
 		return
 			source.AffectedSourceTimestamp <= NetworkTime.time &&
 			source.AffectedTargetTimestamp >= NetworkTime.time;
+	}
+
+	public static bool IsWinner(this CompPawnNew pawn, bool isLocalPlayer)
+	{
+		return isLocalPlayer && pawn.State.Score >= pawn.MaxScore;
 	}
 
 	public static void SetUltimateEnabled(ref this StatePawn target, CompPawnNew pawn)

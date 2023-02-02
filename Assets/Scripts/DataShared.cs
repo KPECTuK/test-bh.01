@@ -11,6 +11,7 @@ public sealed class DataShared
 
 	public string StrategyCurrent;
 	public int ScoreCurrent;
+	public string NameWinner;
 
 	private readonly int LOG_LINES_MAX_I = 20;
 	private readonly Queue<string> _log = new();
